@@ -93,17 +93,24 @@ async function main() {
   }
 
   console.log(`取り込み: ${total}件`);
-  if (failed.length > 0) {
-    console.error(`失敗した都道府県: ${failed.join("、")}。もう一度 --only=県名 で取り込んでください`);
-    process.exit(1);
+  const retryHint = `失敗した都道府県: ${failed.join("、")}。あとで --only=県名 で取り込んでください`;
+  if (only) {
+    if (failed.length > 0) throw new Error(retryHint);
+    return;
   }
-  if (only) return;
 
-  const removed = await store.deleteOlderThan(runStart);
-  console.log(`古い行を削除: ${removed}件`);
+  // 全部成功したときだけ、今回見つからなかった古い行（閉店など）を消す
+  if (failed.length === 0) {
+    const removed = await store.deleteOlderThan(runStart);
+    console.log(`古い行を削除: ${removed}件`);
+  } else {
+    console.warn(`失敗した県があるので、古い行の削除はしません`);
+  }
 
+  // 候補と会社の一覧は、失敗した県があっても作る（その県の分が少し足りないだけ）
   const brands = await writeBrands(names);
   await writeCompanies(names, brands);
+  if (failed.length > 0) throw new Error(retryHint);
 }
 
 main()

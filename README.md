@@ -88,12 +88,12 @@ npm run import-shops -- --brands-only   # 取り込みはせず、Supabase の�
    ```bash
    npm run import-shops
    ```
-   - 新しくできた店が増え、閉店した店が消えます。候補（`data/brands.json`）と会社の一覧（`data/companies.json`）も作り直されます
+   - 新しくできた店が増え、閉店した店が消えます。候補（`data/brands.json`）と会社の一覧（`data/companies.json`）も作り直され、画面下の「最終更新日」（`data/updated.json`）も今日の日付になります
    - 最後に「失敗した都道府県」が出たら、その県だけ `npm run import-shops -- --only=県名` で取り込み直す
    - OpenStreetMap のサーバーが混んでいて失敗が多いときは、時間をおいてやり直す
 2. **作り直した一覧を公開サイトに反映する**
    ```bash
-   git add data/brands.json data/companies.json
+   git add data/brands.json data/companies.json data/updated.json
    git commit -m "data: 店のデータを更新"
    git push
    ```

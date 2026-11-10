@@ -1,5 +1,5 @@
 // 日本の飲食店を OpenStreetMap から都道府県ごとに取り、Supabase の shops 表に入れる。
-// 全国を取り込んだときは data/brands.json（誤字の候補用）も作り直す。
+// 全国を取り込んだときは data/brands.json（誤字の候補用）と data/updated.json（最終更新日）も作り直す。
 //
 // 使い方：
 //   npm run import-shops                 全国（1時間前後）
@@ -48,6 +48,13 @@ async function writeCompanies(names: { name: string; brand?: string; wikidata?: 
   const companies = buildCompanies(ids, ancestors, brands);
   writeFileSync(path.join(process.cwd(), "data", "companies.json"), JSON.stringify(companies));
   console.log(`companies.json: ${companies.length}件、上位: ${companies.slice(0, 10).map((c) => `${c.name}(${c.brands.slice(0, 4).join("/")})`).join("、")}`);
+}
+
+/** 画面に出す「店のデータの最終更新日」を data/updated.json に書く（日本時間の日付） */
+function writeUpdatedDate(date: Date) {
+  const day = date.toLocaleDateString("sv-SE", { timeZone: "Asia/Tokyo" }); // 例 2026-11-10
+  writeFileSync(path.join(process.cwd(), "data", "updated.json"), JSON.stringify({ shopsUpdatedAt: day }) + "\n");
+  console.log(`updated.json: ${day}`);
 }
 
 async function main() {
@@ -110,6 +117,7 @@ async function main() {
   // 候補と会社の一覧は、失敗した県があっても作る（その県の分が少し足りないだけ）
   const brands = await writeBrands(names);
   await writeCompanies(names, brands);
+  writeUpdatedDate(runStart);
   if (failed.length > 0) throw new Error(retryHint);
 }
 

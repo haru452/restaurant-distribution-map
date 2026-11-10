@@ -2,10 +2,15 @@
 // 画面全体：検索欄、地図、ランキング
 import dynamic from "next/dynamic";
 import { useCallback, useState } from "react";
+import updated from "@/data/updated.json";
 import { missingPrefectures } from "@/lib/prefectureOrder";
 import { RankingPanel } from "./RankingPanel";
 import { SearchBar } from "./SearchBar";
 import { useSearch } from "./useSearch";
+
+// 店のデータの最終更新日（例 "2026-11-10" → "2026年11月10日"）
+const [y, m, d] = updated.shopsUpdatedAt.split("-").map(Number);
+const updatedLabel = `${y}年${m}月${d}日`;
 
 // Leaflet は window を使うので、サーバーでは描かない
 const MapView = dynamic(() => import("./MapView"), {
@@ -69,8 +74,9 @@ export function App() {
         </aside>
       </main>
 
-      <footer className="text-xs text-muted">
-        地図・店舗データ © OpenStreetMap contributors（ODbL）／ 都道府県境界：地球地図日本 ／ 候補：Name Suggestion Index
+      <footer className="space-y-1 text-xs text-muted">
+        <p>店のデータの最終更新日：{updatedLabel}</p>
+        <p>地図・店舗データ © OpenStreetMap contributors（ODbL）／ 都道府県境界：地球地図日本 ／ 候補：Name Suggestion Index</p>
       </footer>
     </div>
   );

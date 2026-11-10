@@ -9,6 +9,7 @@ const ERRORS: Record<string, string> = {
   daily_limit: "今日の考察の上限（100回）に達しました。明日またお試しください",
   ai_unavailable: "AIが混み合っているか、使えない状態です。少し待ってもう一度お試しください",
   no_shops: "店が見つからないため考察できません",
+  ai_not_configured: "AIの設定（GeminiのAPIキー）がまだ反映されていません",
 };
 
 export function InsightPanel({ query, onHqChange }: Props) {

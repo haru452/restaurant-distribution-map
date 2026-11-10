@@ -9,13 +9,41 @@ import path from "node:path";
 import prefectureData from "../data/prefectures.json";
 import { aggregateBrands } from "../lib/brandName";
 import { fetchNsiBrands, fetchPrefectureShops } from "../lib/importQuery";
-import { createShopStore } from "../lib/shopStore";
+import { createShopStore, supabaseFromEnv } from "../lib/shopStore";
 
 const WAIT_BETWEEN_MS = 10_000;
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
+/** Supabase に入っている店の名前とブランドを全部読む（--brands-only 用） */
+async function readNamesFromSupabase() {
+  const db = supabaseFromEnv();
+  if (!db) throw new Error(".env.local に SUPABASE_URL と SUPABASE_SERVICE_ROLE_KEY を設定してください");
+  const names: { name: string; brand?: string }[] = [];
+  for (let from = 0; ; from += 1000) {
+    const { data, error } = await db.from("shops").select("name,brand").order("osm_id").range(from, from + 999);
+    if (error) throw new Error(error.message);
+    for (const row of data ?? []) names.push({ name: row.name, brand: row.brand ?? undefined });
+    if ((data ?? []).length < 1000) break;
+  }
+  return names;
+}
+
+async function writeBrands(names: { name: string; brand?: string }[]) {
+  const brands = aggregateBrands(names, await fetchNsiBrands());
+  const out = path.join(process.cwd(), "data", "brands.json");
+  writeFileSync(out, JSON.stringify(brands));
+  console.log(`brands.json: ${brands.length}件、上位: ${brands.slice(0, 20).map((b) => `${b.name}(${b.count})`).join("、")}`);
+}
+
 async function main() {
+  // --brands-only：取り込みはせず、Supabase の店から brands.json だけ作り直す
+  if (process.argv.includes("--brands-only")) {
+    const names = await readNamesFromSupabase();
+    console.log(`Supabase から ${names.length}件を読みました`);
+    await writeBrands(names);
+    return;
+  }
   const only = process.argv.find((a) => a.startsWith("--only="))?.slice("--only=".length);
   const store = createShopStore();
   if (!store) {
@@ -60,10 +88,7 @@ async function main() {
   const removed = await store.deleteOlderThan(runStart);
   console.log(`古い行を削除: ${removed}件`);
 
-  const brands = aggregateBrands(names, await fetchNsiBrands());
-  const out = path.join(process.cwd(), "data", "brands.json");
-  writeFileSync(out, JSON.stringify(brands));
-  console.log(`brands.json: ${brands.length}件、上位: ${brands.slice(0, 20).map((b) => `${b.name}(${b.count})`).join("、")}`);
+  await writeBrands(names);
 }
 
 main()

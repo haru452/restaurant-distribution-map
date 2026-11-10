@@ -37,7 +37,7 @@ describe("aggregateBrands", () => {
       { name: "スシロー", aliases: [], count: 3 },
     ]);
   });
-  it("同じブランドID（Wikidata）の店は、書き方が違っても1つにまとめ、一番多い名前を使う", () => {
+  it("書き方の違いは1つにまとめ、一番多い名前を使う", () => {
     const agg = aggregateBrands(
       [
         ...Array(3).fill({ name: "コメダ珈琲店 渋谷店", brand: "コメダ珈琲店", wikidata: "Q11" }),
@@ -46,6 +46,18 @@ describe("aggregateBrands", () => {
       [],
     );
     expect(agg).toEqual([{ name: "コメダ珈琲店", aliases: ["コメダ"], count: 5 }]);
+  });
+  it("同じID（会社のIDが付いていることがある）でも、名前が違うチェーンはまとめない", () => {
+    const agg = aggregateBrands(
+      [
+        ...Array(3).fill({ name: "x", brand: "ガスト", wikidata: "Q_SKYLARK" }),
+        ...Array(3).fill({ name: "x", brand: "バーミヤン", wikidata: "Q_SKYLARK" }),
+        ...Array(3).fill({ name: "x", brand: "ステーキガスト", wikidata: "Q_SKYLARK" }),
+      ],
+      [{ name: "バーミヤン", aliases: ["Bamiyan"], count: 0, wikidata: "Q_SKYLARK" }],
+    );
+    expect(agg.map((b) => b.name).sort()).toEqual(["ガスト", "ステーキガスト", "バーミヤン"]);
+    expect(agg.find((b) => b.name === "ガスト")!.aliases).toEqual([]);
   });
   it("IDがなくても「珈琲」「珈琲店」「コーヒーショップ」などの語尾の違いはまとめる", () => {
     const agg = aggregateBrands(

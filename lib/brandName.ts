@@ -50,7 +50,8 @@ const MAX_ALIASES = 10;
 
 /**
  * 取り込んだ店からチェーン名を数え、NSI の名前と合わせる（count の多い順）。
- * 同じブランドID（Wikidata）か、語尾の違いだけの名前は1つのチェーンにまとめ、
+ * 語尾の違いだけの名前（NSI の別名を含む）は1つのチェーンにまとめ、
+ * ブランドID（Wikidata）は会社のIDが付いていることがあり、別チェーンがまとまってしまうので使わない。
  * 一番店舗数の多い書き方を名前にし、ほかは別名にする。
  */
 export function aggregateBrands(
@@ -60,18 +61,13 @@ export function aggregateBrands(
 ): Brand[] {
   // 1. 書き方ごとに数える
   const raw = new Map<string, number>();
-  const wikidataOf = new Map<string, Set<string>>();
   for (const shop of shops) {
     const key = shop.brand?.trim() || stripBranch(shop.name);
     raw.set(key, (raw.get(key) ?? 0) + 1);
-    if (shop.wikidata) {
-      if (!wikidataOf.has(key)) wikidataOf.set(key, new Set());
-      wikidataOf.get(key)!.add(shop.wikidata);
-    }
   }
   const counts = mergeUnseparated(raw);
 
-  // 2. ブランドIDか語尾を除いたキーが同じものを、同じグループにする（Union-Find）
+  // 2. 語尾を除いたキーが同じものを、同じグループにする（Union-Find）
   type Node = { name: string; count: number; nsi?: NsiBrand };
   const nodes: Node[] = [
     ...[...counts].map(([name, count]) => ({ name, count })),
@@ -88,8 +84,6 @@ export function aggregateBrands(
   nodes.forEach((node, i) => {
     const names = node.nsi ? [node.nsi.name, ...node.nsi.aliases] : [node.name];
     for (const n of names) link(`sk:${suffixKey(n)}`, i);
-    const ids = node.nsi ? [node.nsi.wikidata] : [...(wikidataOf.get(node.name) ?? [])];
-    for (const id of ids) if (id) link(`wd:${id}`, i);
   });
 
   // 3. グループごとに名前・別名・店舗数を決める

@@ -94,7 +94,7 @@ export async function handleInsight(rawQuery: string | null, deps: InsightDeps):
   // 2. 分布データ
   const result = await deps.search(query);
   if (result.total === 0) return { status: 404, body: { error: "no_shops" } };
-  if (!deps.gemini) return { status: 503, body: { error: "ai_unavailable" } };
+  if (!deps.gemini) return { status: 503, body: { error: "ai_not_configured" } };
 
   // 3. 1日の上限
   if (deps.cache) {

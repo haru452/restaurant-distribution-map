@@ -119,6 +119,13 @@ describe("handleInsight", () => {
     expect(calls.gemini).toBe(0);
   });
 
+  it("Gemini のキーがなければ 503 ai_not_configured（設定漏れと分かるように）", async () => {
+    const { deps, calls } = setup();
+    deps.gemini = null;
+    expect(await handleInsight("スシロー", deps)).toEqual({ status: 503, body: { error: "ai_not_configured" } });
+    expect(calls.usage).toBe(0);
+  });
+
   it("店が0件なら 404、回数を使わない", async () => {
     const { deps, calls } = setup({ total: 0 });
     expect((await handleInsight("ないみせ", deps)).status).toBe(404);

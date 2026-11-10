@@ -66,7 +66,9 @@ async function main() {
   console.log(`brands.json: ${brands.length}件、上位: ${brands.slice(0, 20).map((b) => `${b.name}(${b.count})`).join("、")}`);
 }
 
-main().catch((e) => {
+main()
+  .then(() => process.exit(0)) // Supabase の接続が残ってプロセスが終わらないため
+  .catch((e) => {
   console.error(e);
   process.exit(1);
 });

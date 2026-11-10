@@ -11,6 +11,10 @@ const MAX_QUERY_LENGTH = 60;
 export type Insight = {
   query: string;
   summary: string;
+  /** 何屋さんか（例：回転寿司、ファミリーレストラン） */
+  genre: string | null;
+  /** 有名なもの（名物メニューや特徴、最大3つ） */
+  famousFor: string[];
   hqPrefecture: string | null;
   reasons: string[];
   sources: Source[];
@@ -64,20 +68,22 @@ export function buildInsightPrompt(result: SearchResult): string {
     "- 一般的な言葉（例：ラーメン）や個人店などチェーンではなさそうな場合は、その旨を summary に書き、hqPrefecture は null にしてください",
     "",
     "出力は次の形の JSON だけにしてください（説明文は付けない）：",
-    '{"summary": "1〜2文のまとめ", "hqPrefecture": "本社または創業の地の都道府県名（例：大阪府）。分からなければ null", "reasons": ["分布の理由を1〜2文で", "…（3〜5個）"]}',
+    '{"summary": "1〜2文のまとめ", "genre": "何屋さんか（例：回転寿司、ファミリーレストラン）。分からなければ null", "famousFor": ["有名なメニューや特徴を短く（最大3つ）"], "hqPrefecture": "本社または創業の地の都道府県名（例：大阪府）。分からなければ null", "reasons": ["分布の理由を1〜2文で", "…（3〜5個）"]}',
   ].join("\n");
 }
 
 /** Gemini の答えから JSON を取り出す */
-export function parseInsight(text: string): Pick<Insight, "summary" | "hqPrefecture" | "reasons"> {
+export function parseInsight(text: string): Pick<Insight, "summary" | "genre" | "famousFor" | "hqPrefecture" | "reasons"> {
   const start = text.indexOf("{");
   const end = text.lastIndexOf("}");
   if (start < 0 || end <= start) throw new Error("JSON が見つかりません");
   const raw = JSON.parse(text.slice(start, end + 1)) as Record<string, unknown>;
   if (typeof raw.summary !== "string" || !raw.summary) throw new Error("summary がありません");
   const hq = typeof raw.hqPrefecture === "string" && POPULATION[raw.hqPrefecture] ? raw.hqPrefecture : null;
-  const reasons = Array.isArray(raw.reasons) ? raw.reasons.filter((r): r is string => typeof r === "string" && !!r).slice(0, 6) : [];
-  return { summary: raw.summary, hqPrefecture: hq, reasons };
+  const strings = (v: unknown, max: number) =>
+    Array.isArray(v) ? v.filter((r): r is string => typeof r === "string" && !!r).slice(0, max) : [];
+  const genre = typeof raw.genre === "string" && raw.genre ? raw.genre : null;
+  return { summary: raw.summary, genre, famousFor: strings(raw.famousFor, 3), hqPrefecture: hq, reasons: strings(raw.reasons, 6) };
 }
 
 export async function handleInsight(rawQuery: string | null, deps: InsightDeps): Promise<InsightResponse> {
@@ -85,9 +91,10 @@ export async function handleInsight(rawQuery: string | null, deps: InsightDeps):
   const query = normalizeQuery(rawQuery ?? "");
   if (!isValidQuery(query) || query.length > MAX_QUERY_LENGTH) return { status: 400, body: { error: "invalid_query" } };
 
-  // 1. 保存済みの考察（30日以内）
+  // 1. 保存済みの考察（30日以内。何屋さんの項目がない古い形のものは使わない）
   const cached = await deps.cache?.get(query).catch(() => null);
-  if (cached && now().getTime() - new Date(cached.createdAt).getTime() < CACHE_DAYS * 86_400_000) {
+  const fresh = cached && "genre" in cached && now().getTime() - new Date(cached.createdAt).getTime() < CACHE_DAYS * 86_400_000;
+  if (cached && fresh) {
     return { status: 200, body: cached };
   }
 

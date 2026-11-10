@@ -29,8 +29,19 @@ describe("buildInsightPrompt", () => {
 
 describe("parseInsight", () => {
   it("```json で囲まれていても読む", () => {
-    const text = '考察です\n```json\n{"summary":"大阪発","hqPrefecture":"大阪府","reasons":["a","b"]}\n```';
-    expect(parseInsight(text)).toEqual({ summary: "大阪発", hqPrefecture: "大阪府", reasons: ["a", "b"] });
+    const text = '考察です\n```json\n{"summary":"大阪発","genre":"回転寿司","famousFor":["まぐろ","サイドメニュー"],"hqPrefecture":"大阪府","reasons":["a","b"]}\n```';
+    expect(parseInsight(text)).toEqual({
+      summary: "大阪発",
+      genre: "回転寿司",
+      famousFor: ["まぐろ", "サイドメニュー"],
+      hqPrefecture: "大阪府",
+      reasons: ["a", "b"],
+    });
+  });
+  it("何屋さん・有名なものがなくても読める（null と空）", () => {
+    const r = parseInsight('{"summary":"s","hqPrefecture":null,"reasons":[]}');
+    expect(r.genre).toBeNull();
+    expect(r.famousFor).toEqual([]);
   });
   it("知らない都道府県名や空は null にする", () => {
     expect(parseInsight('{"summary":"s","hqPrefecture":"大阪","reasons":[]}').hqPrefecture).toBeNull();
@@ -58,7 +69,7 @@ function setup(opts: { cached?: Insight; allowed?: boolean; total?: number; gemi
       calls.gemini++;
       if (opts.geminiError) throw opts.geminiError;
       return {
-        text: '{"summary":"大阪発のチェーン","hqPrefecture":"大阪府","reasons":["創業地","都市部"]}',
+        text: '{"summary":"大阪発のチェーン","genre":"回転寿司","famousFor":["まぐろ"],"hqPrefecture":"大阪府","reasons":["創業地","都市部"]}',
         sources: [{ title: "会社概要", uri: "https://example.com" }],
         webChecked: opts.search ?? true,
       };
@@ -79,7 +90,7 @@ describe("handleInsight", () => {
   });
 
   it("保存済みなら Gemini も回数も使わない", async () => {
-    const cached: Insight = { query: "スシロー", summary: "前の考察", hqPrefecture: "大阪府", reasons: [], sources: [], webChecked: true, createdAt: "2026-11-01T00:00:00Z" };
+    const cached: Insight = { query: "スシロー", summary: "前の考察", genre: "回転寿司", famousFor: [], hqPrefecture: "大阪府", reasons: [], sources: [], webChecked: true, createdAt: "2026-11-01T00:00:00Z" };
     const { deps, calls } = setup({ cached });
     const r = await handleInsight("すしろー", deps);
     expect(r).toMatchObject({ status: 200, body: { summary: "前の考察" } });
@@ -94,6 +105,8 @@ describe("handleInsight", () => {
     expect(r.body).toEqual({
       query: "スシロー",
       summary: "大阪発のチェーン",
+      genre: "回転寿司",
+      famousFor: ["まぐろ"],
       hqPrefecture: "大阪府",
       reasons: ["創業地", "都市部"],
       sources: [{ title: "会社概要", uri: "https://example.com" }],
@@ -101,6 +114,14 @@ describe("handleInsight", () => {
       createdAt: "2026-11-10T00:00:00.000Z",
     });
     expect(calls.saved).toHaveLength(1);
+  });
+
+  it("何屋さんが入っていない古い保存は使わず、考察し直す", async () => {
+    const old = { query: "スシロー", summary: "古い", hqPrefecture: "大阪府", reasons: [], sources: [], webChecked: true, createdAt: "2026-11-09T00:00:00Z" } as unknown as Insight;
+    const { deps, calls } = setup({ cached: old });
+    const r = await handleInsight("スシロー", deps);
+    expect(r.body).toMatchObject({ genre: "回転寿司" });
+    expect(calls.gemini).toBe(1);
   });
 
   it("その日の上限を超えたら 429、Gemini は呼ばない", async () => {

@@ -70,6 +70,18 @@ export function InsightPanel({ query, onHqChange }: Props) {
 
   return (
     <section aria-label="AIの考察" className="space-y-3 rounded-lg bg-accent/5 p-4 text-sm text-ink">
+      {(insight!.genre || insight!.famousFor?.length > 0) && (
+        <div className="flex flex-wrap items-center gap-1.5">
+          {insight!.genre && (
+            <span className="rounded-full bg-accent px-2.5 py-0.5 text-xs font-bold text-on-accent">{insight!.genre}</span>
+          )}
+          {insight!.famousFor?.map((f) => (
+            <span key={f} className="rounded-full border border-accent/40 bg-surface px-2.5 py-0.5 text-xs text-ink">
+              {f}
+            </span>
+          ))}
+        </div>
+      )}
       <p className="font-bold">🤖 {insight!.summary}</p>
       {insight!.hqPrefecture && (
         <p>

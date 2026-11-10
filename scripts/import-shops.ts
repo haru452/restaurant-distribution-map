@@ -31,7 +31,7 @@ async function main() {
   }
 
   const runStart = new Date();
-  const names: { name: string; brand?: string }[] = [];
+  const names: { name: string; brand?: string; wikidata?: string }[] = [];
   const failed: string[] = [];
   let total = 0;
 
@@ -40,7 +40,7 @@ async function main() {
     try {
       const shops = await fetchPrefectureShops(prefecture);
       await store.upsert(shops.map((s) => ({ ...s, prefecture })), runStart);
-      for (const s of shops) names.push({ name: s.name, brand: s.brand });
+      for (const s of shops) names.push({ name: s.name, brand: s.brand, wikidata: s.brandWikidata });
       total += shops.length;
       console.log(`[${i + 1}/${targets.length}] ${prefecture}: ${shops.length}件（${Math.round((Date.now() - started) / 1000)}秒）`);
     } catch (e) {

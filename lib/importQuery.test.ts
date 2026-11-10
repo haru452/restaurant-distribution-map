@@ -36,6 +36,7 @@ describe("fetchNsiBrands", () => {
         items: [
           { locationSet: { include: ["jp"] }, tags: { name: "Sukiya", "name:ja": "すき家", "name:en": "Sukiya", brand: "すき家" } },
           { locationSet: { include: ["us"] }, tags: { name: "Wendy's" } },
+          { locationSet: { include: ["jp"] }, tags: { name: "Komeda", "name:ja": "コメダ珈琲店", "brand:wikidata": "Q11" } },
         ],
       },
     };
@@ -45,6 +46,9 @@ describe("fetchNsiBrands", () => {
       return body ? new Response(JSON.stringify(body)) : new Response("not found", { status: 404 });
     }) as unknown as typeof fetch;
 
-    expect(await fetchNsiBrands(fakeFetch)).toEqual([{ name: "すき家", aliases: ["Sukiya"], count: 0 }]);
+    expect(await fetchNsiBrands(fakeFetch)).toStrictEqual([
+      { name: "すき家", aliases: ["Sukiya"], count: 0 },
+      { name: "コメダ珈琲店", aliases: ["Komeda"], count: 0, wikidata: "Q11" },
+    ]);
   });
 });

@@ -102,6 +102,7 @@ export function parseElements(json: unknown): OsmShop[] {
     const address = buildAddress(tags);
     if (address) shop.address = address;
     if (tags.brand) shop.brand = tags.brand;
+    if (tags["brand:wikidata"]) shop.brandWikidata = tags["brand:wikidata"];
     shops.push(shop);
   }
   return shops;

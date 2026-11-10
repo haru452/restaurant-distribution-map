@@ -1,6 +1,7 @@
 // 取り込みスクリプト用：都道府県ごとの問い合わせ文と、Name Suggestion Index の読み込み
 import { AMENITIES, AMENITY_REGEX, parseElements, runOverpass } from "./overpass";
-import type { Brand, OsmShop } from "./types";
+import type { NsiBrand } from "./brandName";
+import type { OsmShop } from "./types";
 
 type FetchOptions = { fetchImpl?: typeof fetch; tries?: number; waitMs?: number; timeoutMs?: number };
 
@@ -40,8 +41,8 @@ export function buildPrefectureQuery(prefecture: string): string {
 type NsiItem = { locationSet?: { include?: string[] }; tags?: Record<string, string> };
 
 /** NSI から日本向けの飲食チェーン名を取る（count は 0） */
-export async function fetchNsiBrands(fetchImpl: typeof fetch = fetch): Promise<Brand[]> {
-  const brands: Brand[] = [];
+export async function fetchNsiBrands(fetchImpl: typeof fetch = fetch): Promise<NsiBrand[]> {
+  const brands: NsiBrand[] = [];
   for (const amenity of AMENITIES) {
     const res = await fetchImpl(`${NSI_BASE}/${amenity}.json`);
     if (!res.ok) {
@@ -56,7 +57,9 @@ export async function fetchNsiBrands(fetchImpl: typeof fetch = fetch): Promise<B
       if (!name) continue;
       const aliases = [tags.name, tags["name:ja"], tags.brand, tags["brand:ja"], tags["name:en"]]
         .filter((v): v is string => !!v && v !== name);
-      brands.push({ name, aliases: [...new Set(aliases)], count: 0 });
+      const brand: NsiBrand = { name, aliases: [...new Set(aliases)], count: 0 };
+      if (tags["brand:wikidata"]) brand.wikidata = tags["brand:wikidata"];
+      brands.push(brand);
     }
   }
   return brands;

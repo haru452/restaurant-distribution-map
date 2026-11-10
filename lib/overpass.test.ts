@@ -50,6 +50,10 @@ describe("parseElements", () => {
     expect(shop.searchKey).toBe("スキ家渋谷店|スキ家");
     expect(toRawShop(shop)).toEqual({ name: "すき家 渋谷店", lat: 1, lon: 2 });
   });
+  it("brand:wikidata を取っておく", () => {
+    const [shop] = parseElements({ elements: [{ type: "node", id: 1, lat: 1, lon: 2, tags: { name: "A", brand: "A", "brand:wikidata": "Q11" } }] });
+    expect(shop.brandWikidata).toBe("Q11");
+  });
   it("addr:full を優先する", () => {
     const [shop] = parseElements({ elements: [{ type: "node", id: 1, lat: 1, lon: 2, tags: { name: "A", "addr:full": "東京都千代田区1-1", "addr:city": "X" } }] });
     expect(shop.address).toBe("東京都千代田区1-1");

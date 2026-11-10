@@ -10,5 +10,5 @@ export type SearchResult = {
 };
 export type RawShop = Omit<Shop, "prefecture">;
 /** Overpass から取った店（保存用の情報つき） */
-export type OsmShop = RawShop & { osmId: string; brand?: string; searchKey: string };
+export type OsmShop = RawShop & { osmId: string; brand?: string; brandWikidata?: string; searchKey: string };
 export type Brand = { name: string; aliases: string[]; count: number };

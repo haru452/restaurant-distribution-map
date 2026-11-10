@@ -23,7 +23,7 @@ const japanZoom = () => (window.innerWidth < 640 ? 4 : 5);
 export default function MapView({ result }: { result?: SearchResult }) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [map, setMap] = useState<L.Map | null>(null);
-  const [mode, setMode] = useState<ViewMode>("heat");
+  const [mode, setMode] = useState<ViewMode>("choropleth");
 
   useEffect(() => {
     if (!containerRef.current) return;

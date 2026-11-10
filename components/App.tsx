@@ -35,7 +35,7 @@ export function App() {
       </header>
 
       <main className="flex flex-1 flex-col gap-4 lg:h-[calc(100dvh-12rem)] lg:min-h-[480px] lg:flex-none lg:flex-row">
-        <section aria-label="地図" className="relative h-[55vh] min-h-[320px] overflow-hidden rounded-xl border border-line bg-surface lg:h-full lg:min-h-0 lg:flex-1">
+        <section aria-label="地図" className="relative isolate h-[55vh] min-h-[320px] overflow-hidden rounded-xl border border-line bg-surface lg:h-full lg:min-h-0 lg:flex-1">
           <MapView result={result} hqPrefecture={hqPrefecture} missing={missing} onHideMissing={() => setMissingFor(null)} />
           {state === "loading" && (
             <div className="absolute inset-0 z-[500] flex flex-col items-center justify-center gap-1 bg-surface/70 text-ink backdrop-blur-sm">

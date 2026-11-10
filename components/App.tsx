@@ -23,14 +23,14 @@ export function App() {
   const hqPrefecture = hq && hq.query === result?.query ? hq.prefecture : null;
 
   return (
-    <div className="mx-auto flex w-full max-w-7xl flex-1 flex-col gap-4 px-4 py-4 lg:py-6">
+    <div className="mx-auto flex w-full max-w-screen-2xl flex-1 flex-col gap-4 px-4 py-4 lg:py-6">
       <header className="space-y-3">
         <h1 className="text-xl font-bold text-ink lg:text-2xl">レストラン分布マップ</h1>
         <SearchBar onSearch={search} disabled={state === "loading"} />
       </header>
 
-      <main className="flex flex-1 flex-col gap-4 lg:flex-row">
-        <section aria-label="地図" className="relative h-[55vh] min-h-[320px] overflow-hidden rounded-xl border border-line bg-surface lg:h-auto lg:min-h-[560px] lg:flex-1">
+      <main className="flex flex-1 flex-col gap-4 lg:h-[calc(100dvh-12rem)] lg:min-h-[480px] lg:flex-none lg:flex-row">
+        <section aria-label="地図" className="relative h-[55vh] min-h-[320px] overflow-hidden rounded-xl border border-line bg-surface lg:h-full lg:min-h-0 lg:flex-1">
           <MapView result={result} hqPrefecture={hqPrefecture} />
           {state === "loading" && (
             <div className="absolute inset-0 z-[500] flex flex-col items-center justify-center gap-1 bg-surface/70 text-ink backdrop-blur-sm">
@@ -40,7 +40,7 @@ export function App() {
           )}
         </section>
 
-        <aside aria-label="都道府県ランキング" className="rounded-xl border border-line bg-surface p-4 lg:w-80 lg:overflow-y-auto">
+        <aside aria-label="都道府県ランキング" className="rounded-xl border border-line bg-surface p-4 lg:h-full lg:w-96 lg:overflow-y-auto">
           {state === "idle" && (
             <p className="text-muted">店名で検索すると、その店がどの都道府県に多いかを地図とランキングで表示します。</p>
           )}

@@ -38,7 +38,7 @@ export function RankingPanel({ result, onSearch, onHqChange }: Props) {
   return (
     <div className="space-y-3">
       <p className="text-ink">
-        <span className="text-sm text-muted">「{result.query}」全国</span>
+        <span className="text-sm text-muted">「{result.company?.name ?? result.query}」全国</span>
         <br />
         <span className="text-3xl font-bold tabular-nums">{result.total.toLocaleString()}</span>
         <span className="ml-1">店</span>

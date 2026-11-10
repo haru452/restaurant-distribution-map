@@ -1,8 +1,15 @@
 "use client";
 // 画面全体：検索欄、地図、ランキング
+import dynamic from "next/dynamic";
 import { RankingPanel } from "./RankingPanel";
 import { SearchBar } from "./SearchBar";
 import { useSearch } from "./useSearch";
+
+// Leaflet は window を使うので、サーバーでは描かない
+const MapView = dynamic(() => import("./MapView"), {
+  ssr: false,
+  loading: () => <div className="flex h-full items-center justify-center text-muted">地図を読み込み中…</div>,
+});
 
 export function App() {
   const { state, result, error, search, retry } = useSearch();
@@ -16,8 +23,7 @@ export function App() {
 
       <main className="flex flex-1 flex-col gap-4 lg:flex-row">
         <section aria-label="地図" className="relative h-[55vh] min-h-[320px] overflow-hidden rounded-xl border border-line bg-surface lg:h-auto lg:min-h-[560px] lg:flex-1">
-          {/* 地図は Task 9 で入る */}
-          <div className="flex h-full items-center justify-center text-muted">地図</div>
+          <MapView result={result} />
           {state === "loading" && (
             <div className="absolute inset-0 z-[500] flex flex-col items-center justify-center gap-1 bg-surface/70 text-ink backdrop-blur-sm">
               <p className="font-bold">検索中…</p>

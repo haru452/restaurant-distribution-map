@@ -61,14 +61,18 @@ function toRow(shop: OsmShop & { prefecture: string }, updatedAt: Date): ShopRow
   };
 }
 
+/** 環境変数から Supabase のクライアントを作る。なければ null */
+export function supabaseFromEnv(): SupabaseClient | null {
+  const url = process.env.SUPABASE_URL;
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (!url || !key) return null;
+  return createClient(url, key, { auth: { persistSession: false } });
+}
+
 /** client を渡さなければ環境変数から作る。環境変数がなければ null */
 export function createShopStore(client?: SupabaseClient): ShopStore | null {
-  if (!client) {
-    const url = process.env.SUPABASE_URL;
-    const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
-    if (!url || !key) return null;
-    client = createClient(url, key, { auth: { persistSession: false } });
-  }
+  client ??= supabaseFromEnv() ?? undefined;
+  if (!client) return null;
   const db = client;
   const limit = MAX_SHOPS + 1;
 

@@ -8,6 +8,7 @@ import { ChoroplethLayer } from "./layers/ChoroplethLayer";
 import { HeatLayer } from "./layers/HeatLayer";
 import { PinLayer } from "./layers/PinLayer";
 import { LocateButton } from "./LocateButton";
+import { HqOutline } from "./layers/HqOutline";
 
 export type ViewMode = "heat" | "choropleth" | "pins";
 
@@ -20,7 +21,7 @@ const MODES: { id: ViewMode; label: string }[] = [
 const JAPAN_CENTER: L.LatLngTuple = [37.5, 137.5];
 const japanZoom = () => (window.innerWidth < 640 ? 4 : 5);
 
-export default function MapView({ result }: { result?: SearchResult }) {
+export default function MapView({ result, hqPrefecture }: { result?: SearchResult; hqPrefecture?: string | null }) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [map, setMap] = useState<L.Map | null>(null);
   const [mode, setMode] = useState<ViewMode>("choropleth");
@@ -71,6 +72,7 @@ export default function MapView({ result }: { result?: SearchResult }) {
       {map && result && mode === "choropleth" && <ChoroplethLayer map={map} result={result} />}
       {map && result && mode === "pins" && <PinLayer map={map} result={result} />}
       {map && <LocateButton map={map} />}
+      {map && hqPrefecture && <HqOutline map={map} prefecture={hqPrefecture} />}
     </div>
   );
 }

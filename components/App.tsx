@@ -1,6 +1,7 @@
 "use client";
 // 画面全体：検索欄、地図、ランキング
 import dynamic from "next/dynamic";
+import { useCallback, useState } from "react";
 import { RankingPanel } from "./RankingPanel";
 import { SearchBar } from "./SearchBar";
 import { useSearch } from "./useSearch";
@@ -13,6 +14,13 @@ const MapView = dynamic(() => import("./MapView"), {
 
 export function App() {
   const { state, result, error, search, retry } = useSearch();
+  // AIの考察で分かった本社の県（どの店名の考察かも覚えておき、別の店名の結果には出さない）
+  const [hq, setHq] = useState<{ query: string; prefecture: string } | null>(null);
+  const onHqChange = useCallback(
+    (query: string, prefecture: string | null) => setHq(prefecture ? { query, prefecture } : null),
+    [],
+  );
+  const hqPrefecture = hq && hq.query === result?.query ? hq.prefecture : null;
 
   return (
     <div className="mx-auto flex w-full max-w-7xl flex-1 flex-col gap-4 px-4 py-4 lg:py-6">
@@ -23,7 +31,7 @@ export function App() {
 
       <main className="flex flex-1 flex-col gap-4 lg:flex-row">
         <section aria-label="地図" className="relative h-[55vh] min-h-[320px] overflow-hidden rounded-xl border border-line bg-surface lg:h-auto lg:min-h-[560px] lg:flex-1">
-          <MapView result={result} />
+          <MapView result={result} hqPrefecture={hqPrefecture} />
           {state === "loading" && (
             <div className="absolute inset-0 z-[500] flex flex-col items-center justify-center gap-1 bg-surface/70 text-ink backdrop-blur-sm">
               <p className="font-bold">検索中…</p>
@@ -46,7 +54,7 @@ export function App() {
               </button>
             </div>
           )}
-          {result && state !== "error" && <RankingPanel result={result} onSearch={search} />}
+          {result && state !== "error" && <RankingPanel result={result} onSearch={search} onHqChange={onHqChange} />}
         </aside>
       </main>
 

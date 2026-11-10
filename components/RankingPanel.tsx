@@ -2,11 +2,12 @@
 // 全国の店舗数、都道府県ランキング、0件のときの「もしかして」
 import { suggest } from "@/lib/suggest";
 import type { SearchResult } from "@/lib/types";
+import { InsightPanel } from "./InsightPanel";
 import { useBrands } from "./useBrands";
 
-type Props = { result: SearchResult; onSearch: (q: string) => void };
+type Props = { result: SearchResult; onSearch: (q: string) => void; onHqChange: (query: string, prefecture: string | null) => void };
 
-export function RankingPanel({ result, onSearch }: Props) {
+export function RankingPanel({ result, onSearch, onHqChange }: Props) {
   const brands = useBrands(result.total === 0);
 
   if (result.total === 0) {
@@ -43,6 +44,7 @@ export function RankingPanel({ result, onSearch }: Props) {
         <span className="ml-1">店</span>
       </p>
       {result.truncated && <p className="text-sm text-danger">件数が多いため一部のみ表示しています</p>}
+      <InsightPanel key={result.query} query={result.query} onHqChange={onHqChange} />
       <ol className="space-y-1.5">
         {result.byPrefecture.map((p, i) => (
           <li key={p.prefecture} className="grid grid-cols-[2rem_4.5rem_1fr_3.5rem] items-center gap-2 text-sm">

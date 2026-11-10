@@ -19,3 +19,5 @@ create index if not exists shops_updated_at on shops (updated_at);
 
 -- ポリシーは作らない＝service role キー以外からは読み書きできない
 alter table shops enable row level security;
+
+-- 分布の考察（Gemini）用の表は supabase/insight.sql を参照

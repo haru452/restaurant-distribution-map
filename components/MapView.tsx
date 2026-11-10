@@ -7,6 +7,7 @@ import type { SearchResult } from "@/lib/types";
 import { ChoroplethLayer } from "./layers/ChoroplethLayer";
 import { HeatLayer } from "./layers/HeatLayer";
 import { PinLayer } from "./layers/PinLayer";
+import { LocateButton } from "./LocateButton";
 
 export type ViewMode = "heat" | "choropleth" | "pins";
 
@@ -69,6 +70,7 @@ export default function MapView({ result }: { result?: SearchResult }) {
       {map && result && mode === "heat" && <HeatLayer map={map} result={result} />}
       {map && result && mode === "choropleth" && <ChoroplethLayer map={map} result={result} />}
       {map && result && mode === "pins" && <PinLayer map={map} result={result} />}
+      {map && <LocateButton map={map} />}
     </div>
   );
 }

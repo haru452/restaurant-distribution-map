@@ -62,7 +62,7 @@ export function InsightPanel({ query, onHqChange }: Props) {
   if (state === "loading") {
     return (
       <p className="rounded-lg bg-accent/5 px-4 py-3 text-sm text-ink" role="status">
-        🤖 考え中…（Webで調べているので10〜20秒かかることがあります）
+        🤖 考え中…（10〜30秒かかることがあります）
       </p>
     );
   }
@@ -99,7 +99,7 @@ export function InsightPanel({ query, onHqChange }: Props) {
         </details>
       )}
       <p className="text-xs text-muted">
-        AIの考察です。正確でない場合があります。{!insight!.webChecked && "（Webでの確認はできませんでした）"}
+        AIの考察です。正確でない場合があります。{!insight!.webChecked && "（Webで調べた結果ではなく、AIの知識による考察です）"}
       </p>
     </section>
   );

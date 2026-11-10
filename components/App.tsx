@@ -2,6 +2,7 @@
 // 画面全体：検索欄、地図、ランキング
 import dynamic from "next/dynamic";
 import { useCallback, useState } from "react";
+import { missingPrefectures } from "@/lib/prefectureOrder";
 import { RankingPanel } from "./RankingPanel";
 import { SearchBar } from "./SearchBar";
 import { useSearch } from "./useSearch";
@@ -21,6 +22,10 @@ export function App() {
     [],
   );
   const hqPrefecture = hq && hq.query === result?.query ? hq.prefecture : null;
+  // 店がない県を見ているか（どの店名のときに押したかを覚えておき、別の検索では戻す）
+  const [missingFor, setMissingFor] = useState<string | null>(null);
+  const showMissing = !!result && missingFor === result.query;
+  const missing = showMissing && result ? missingPrefectures(result.byPrefecture) : null;
 
   return (
     <div className="mx-auto flex w-full max-w-screen-2xl flex-1 flex-col gap-4 px-4 py-4 lg:py-6">
@@ -31,7 +36,7 @@ export function App() {
 
       <main className="flex flex-1 flex-col gap-4 lg:h-[calc(100dvh-12rem)] lg:min-h-[480px] lg:flex-none lg:flex-row">
         <section aria-label="地図" className="relative h-[55vh] min-h-[320px] overflow-hidden rounded-xl border border-line bg-surface lg:h-full lg:min-h-0 lg:flex-1">
-          <MapView result={result} hqPrefecture={hqPrefecture} />
+          <MapView result={result} hqPrefecture={hqPrefecture} missing={missing} onHideMissing={() => setMissingFor(null)} />
           {state === "loading" && (
             <div className="absolute inset-0 z-[500] flex flex-col items-center justify-center gap-1 bg-surface/70 text-ink backdrop-blur-sm">
               <p className="font-bold">検索中…</p>
@@ -54,7 +59,13 @@ export function App() {
               </button>
             </div>
           )}
-          {result && state !== "error" && <RankingPanel result={result} onSearch={search} onHqChange={onHqChange} />}
+          {result && state !== "error" && <RankingPanel
+              result={result}
+              onSearch={search}
+              onHqChange={onHqChange}
+              showMissing={showMissing}
+              onToggleMissing={() => setMissingFor(showMissing ? null : result.query)}
+            />}
         </aside>
       </main>
 

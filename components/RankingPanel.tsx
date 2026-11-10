@@ -3,11 +3,19 @@
 import { suggest } from "@/lib/suggest";
 import type { SearchResult } from "@/lib/types";
 import { InsightPanel } from "./InsightPanel";
+import { missingPrefectures } from "@/lib/prefectureOrder";
 import { useBrands } from "./useBrands";
 
-type Props = { result: SearchResult; onSearch: (q: string) => void; onHqChange: (query: string, prefecture: string | null) => void };
+type Props = {
+  result: SearchResult;
+  onSearch: (q: string) => void;
+  onHqChange: (query: string, prefecture: string | null) => void;
+  /** 店がない県の一覧を見ているか */
+  showMissing: boolean;
+  onToggleMissing: () => void;
+};
 
-export function RankingPanel({ result, onSearch, onHqChange }: Props) {
+export function RankingPanel({ result, onSearch, onHqChange, showMissing, onToggleMissing }: Props) {
   const brands = useBrands(result.total === 0);
 
   if (result.total === 0) {
@@ -62,6 +70,38 @@ export function RankingPanel({ result, onSearch, onHqChange }: Props) {
         </div>
       )}
       <InsightPanel key={result.query} query={result.query} onHqChange={onHqChange} />
+      {(() => {
+        const missing = missingPrefectures(result.byPrefecture);
+        return (
+          <div className="space-y-2">
+            <button
+              type="button"
+              aria-pressed={showMissing}
+              onClick={onToggleMissing}
+              disabled={missing.length === 0}
+              className={`w-full rounded-lg border px-4 py-2 text-sm font-bold transition disabled:opacity-60 ${showMissing ? "border-ink bg-ink text-surface" : "border-line text-ink hover:border-ink"}`}
+            >
+              {missing.length === 0
+                ? "すべての都道府県にあります"
+                : showMissing
+                  ? "ランキングに戻る"
+                  : `店がない県を見る（${missing.length}県）`}
+            </button>
+            {showMissing && missing.length > 0 && (
+              <div className="space-y-2">
+                <p className="text-sm text-muted">「{result.company?.name ?? result.query}」が1軒もない県（北から順、地図で斜線）</p>
+                <ul className="flex flex-wrap gap-1.5">
+                  {missing.map((p) => (
+                    <li key={p} className="rounded-full bg-line px-2.5 py-1 text-xs text-ink">{p}</li>
+                  ))}
+                </ul>
+                <p className="text-xs text-muted">OpenStreetMap に登録がないだけで、実際にはある場合もあります。</p>
+              </div>
+            )}
+          </div>
+        );
+      })()}
+      {!showMissing && (
       <ol className="space-y-1.5">
         {result.byPrefecture.map((p, i) => (
           <li key={p.prefecture} className="grid grid-cols-[2rem_4.5rem_1fr_3.5rem] items-center gap-2 text-sm">
@@ -74,6 +114,7 @@ export function RankingPanel({ result, onSearch, onHqChange }: Props) {
           </li>
         ))}
       </ol>
+      )}
     </div>
   );
 }

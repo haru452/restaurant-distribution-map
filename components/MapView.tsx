@@ -21,10 +21,21 @@ const MODES: { id: ViewMode; label: string }[] = [
 const JAPAN_CENTER: L.LatLngTuple = [37.5, 137.5];
 const japanZoom = () => (window.innerWidth < 640 ? 4 : 5);
 
-export default function MapView({ result, hqPrefecture }: { result?: SearchResult; hqPrefecture?: string | null }) {
+type Props = {
+  result?: SearchResult;
+  hqPrefecture?: string | null;
+  /** 店がない県を見ているときの県の一覧（見ていなければ null） */
+  missing?: string[] | null;
+  /** 店がない県の表示をやめる */
+  onHideMissing?: () => void;
+};
+
+export default function MapView({ result, hqPrefecture, missing, onHideMissing }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [map, setMap] = useState<L.Map | null>(null);
-  const [mode, setMode] = useState<ViewMode>("choropleth");
+  const [chosenMode, setMode] = useState<ViewMode>("choropleth");
+  // 店がない県を見ている間は、県の塗り分けが見える「都道府県」表示にする
+  const mode: ViewMode = missing ? "choropleth" : chosenMode;
 
   useEffect(() => {
     if (!containerRef.current) return;
@@ -61,7 +72,10 @@ export default function MapView({ result, hqPrefecture }: { result?: SearchResul
             key={m.id}
             type="button"
             aria-pressed={mode === m.id}
-            onClick={() => setMode(m.id)}
+            onClick={() => {
+              setMode(m.id);
+              if (missing && m.id !== "choropleth") onHideMissing?.();
+            }}
             className={`px-3 py-2 text-sm font-bold transition ${mode === m.id ? "bg-accent text-on-accent" : "text-ink hover:bg-accent/10"}`}
           >
             {m.label}
@@ -69,7 +83,7 @@ export default function MapView({ result, hqPrefecture }: { result?: SearchResul
         ))}
       </div>
       {map && result && mode === "heat" && <HeatLayer map={map} result={result} />}
-      {map && result && mode === "choropleth" && <ChoroplethLayer map={map} result={result} />}
+      {map && result && mode === "choropleth" && <ChoroplethLayer map={map} result={result} missing={missing ?? undefined} />}
       {map && result && mode === "pins" && <PinLayer map={map} result={result} />}
       {map && <LocateButton map={map} />}
       {map && hqPrefecture && <HqOutline map={map} prefecture={hqPrefecture} />}

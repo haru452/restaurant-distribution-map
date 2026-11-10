@@ -1,6 +1,29 @@
 // 取り込みスクリプト用：都道府県ごとの問い合わせ文と、Name Suggestion Index の読み込み
-import { AMENITIES, AMENITY_REGEX } from "./overpass";
-import type { Brand } from "./types";
+import { AMENITIES, AMENITY_REGEX, parseElements, runOverpass } from "./overpass";
+import type { Brand, OsmShop } from "./types";
+
+type FetchOptions = { fetchImpl?: typeof fetch; tries?: number; waitMs?: number; timeoutMs?: number };
+
+/**
+ * 1つの都道府県の店を取る。失敗や0件はやり直し、それでもだめなら例外。
+ * 0件を成功扱いにすると、取り込み後の「古い行の削除」でその県の店が全部消えるため。
+ */
+export async function fetchPrefectureShops(
+  prefecture: string,
+  { fetchImpl = fetch, tries = 5, waitMs = 60_000, timeoutMs = 10 * 60_000 }: FetchOptions = {},
+): Promise<OsmShop[]> {
+  for (let attempt = 1; ; attempt++) {
+    try {
+      const shops = parseElements(await runOverpass(buildPrefectureQuery(prefecture), fetchImpl, timeoutMs));
+      if (shops.length === 0) throw new Error(`${prefecture}: 0件でした`);
+      return shops;
+    } catch (e) {
+      if (attempt >= tries) throw e;
+      console.warn(`  ${prefecture}: ${(e as Error).message}（${attempt}回目）。${waitMs / 1000}秒待ってやり直します`);
+      await new Promise((r) => setTimeout(r, waitMs));
+    }
+  }
+}
 
 const NSI_BASE = "https://raw.githubusercontent.com/osmlab/name-suggestion-index/main/data/brands/amenity";
 

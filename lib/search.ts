@@ -10,7 +10,14 @@ export type SearchDeps = {
   fetchShops: typeof fetchShopsDefault;
   /** レスポンスを返した後も続けたい処理（Vercel では waitUntil） */
   background: (p: Promise<unknown>) => void;
+  /** 現在時刻（ミリ秒）。テスト用 */
+  now?: () => number;
 };
+
+/** Vercel の60秒制限の中で、Overpass に使ってよい時間の上限（検索開始から数える） */
+export const SEARCH_BUDGET_MS = 50_000;
+/** 残りがこれより少なければ Overpass を呼ばない */
+const MIN_OVERPASS_MS = 5_000;
 
 export type SearchResponse = {
   status: number;
@@ -29,6 +36,8 @@ function result(query: string, shops: Shop[], truncated: boolean, source: Search
 export async function handleSearch(rawQuery: string | null, deps: SearchDeps): Promise<SearchResponse> {
   const query = normalizeQuery(rawQuery ?? "");
   if (!isValidQuery(query)) return { status: 400, body: { error: "invalid_query" }, cacheable: false };
+  const now = deps.now ?? Date.now;
+  const deadline = now() + SEARCH_BUDGET_MS;
 
   // 1. Supabase
   if (deps.store) {
@@ -45,7 +54,9 @@ export async function handleSearch(rawQuery: string | null, deps: SearchDeps): P
 
   // 2. Overpass に直接
   try {
-    const live = await deps.fetchShops(query);
+    const remaining = deadline - now();
+    if (remaining < MIN_OVERPASS_MS) throw new OverpassBusyError("no time left");
+    const live = await deps.fetchShops(query, undefined, remaining);
     const withPref = live.shops.map((s) => ({ ...s, prefecture: findPrefecture(s.lat, s.lon) }));
     if (withPref.length > 0 && deps.store) {
       const store = deps.store;

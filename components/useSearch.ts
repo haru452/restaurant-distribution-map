@@ -25,7 +25,7 @@ export function useSearch() {
     setError(undefined);
     try {
       const res = await fetch(`/api/search?q=${encodeURIComponent(q)}`, { signal: controller.signal });
-      if (res.status === 503) throw Object.assign(new Error("busy"), { kind: "busy" as const });
+      if (res.status === 503 || res.status === 504) throw Object.assign(new Error("busy"), { kind: "busy" as const });
       if (!res.ok) throw Object.assign(new Error("internal"), { kind: "internal" as const });
       const body = (await res.json()) as SearchResult;
       if (controller.signal.aborted) return;

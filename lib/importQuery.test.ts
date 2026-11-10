@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buildPrefectureQuery, fetchNsiBrands } from "./importQuery";
+import { buildPrefectureQuery, fetchNsiBrands, fetchPrefectureShops } from "./importQuery";
 
 describe("buildPrefectureQuery", () => {
   it("県の範囲で、名前のある飲食店を全部取る", () => {
@@ -8,6 +8,24 @@ describe("buildPrefectureQuery", () => {
     expect(q).toContain("[timeout:300]");
     expect(q).toContain('[~"^(name|name:ja|brand|brand:ja)$"~"."]');
     expect(q).toContain("out center tags;");
+  });
+});
+
+describe("fetchPrefectureShops", () => {
+  it("0件が続いたら失敗にする（その県の古い行を消さないため）", async () => {
+    let calls = 0;
+    const empty = (async () => {
+      calls++;
+      return new Response(JSON.stringify({ elements: [] }));
+    }) as unknown as typeof fetch;
+    await expect(fetchPrefectureShops("東京都", { fetchImpl: empty, tries: 2, waitMs: 0 })).rejects.toThrow("0件");
+    expect(calls).toBe(2);
+  });
+  it("1件以上あれば返す", async () => {
+    const one = (async () =>
+      new Response(JSON.stringify({ elements: [{ type: "node", id: 1, lat: 35, lon: 139, tags: { name: "店" } }] }))) as unknown as typeof fetch;
+    const shops = await fetchPrefectureShops("東京都", { fetchImpl: one, tries: 2, waitMs: 0 });
+    expect(shops).toHaveLength(1);
   });
 });
 

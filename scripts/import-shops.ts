@@ -8,28 +8,12 @@ import { writeFileSync } from "node:fs";
 import path from "node:path";
 import prefectureData from "../data/prefectures.json";
 import { aggregateBrands } from "../lib/brandName";
-import { buildPrefectureQuery, fetchNsiBrands } from "../lib/importQuery";
-import { parseElements, runOverpass } from "../lib/overpass";
+import { fetchNsiBrands, fetchPrefectureShops } from "../lib/importQuery";
 import { createShopStore } from "../lib/shopStore";
 
 const WAIT_BETWEEN_MS = 10_000;
-const WAIT_RETRY_MS = 60_000;
-const MAX_TRIES = 5;
-const OVERPASS_TIMEOUT_MS = 10 * 60_000;
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
-
-async function fetchPrefecture(prefecture: string) {
-  for (let attempt = 1; ; attempt++) {
-    try {
-      return parseElements(await runOverpass(buildPrefectureQuery(prefecture), fetch, OVERPASS_TIMEOUT_MS));
-    } catch (e) {
-      if (attempt >= MAX_TRIES) throw e;
-      console.warn(`  ${prefecture}: ${(e as Error).message}（${attempt}回目）。${WAIT_RETRY_MS / 1000}秒待ってやり直します`);
-      await sleep(WAIT_RETRY_MS);
-    }
-  }
-}
 
 async function main() {
   const only = process.argv.find((a) => a.startsWith("--only="))?.slice("--only=".length);
@@ -54,7 +38,7 @@ async function main() {
   for (const [i, prefecture] of targets.entries()) {
     const started = Date.now();
     try {
-      const shops = await fetchPrefecture(prefecture);
+      const shops = await fetchPrefectureShops(prefecture);
       await store.upsert(shops.map((s) => ({ ...s, prefecture })), runStart);
       for (const s of shops) names.push({ name: s.name, brand: s.brand });
       total += shops.length;

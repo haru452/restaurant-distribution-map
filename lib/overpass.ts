@@ -119,22 +119,23 @@ export async function runOverpass(
   fetchImpl: typeof fetch = fetch,
   timeoutMs = 55_000,
 ): Promise<unknown> {
-  let response: Response;
+  let json: { remark?: string };
+  // 時間切れは、返事を待つ間だけでなく本文を読む間にも起きる
   try {
-    response = await fetchImpl(OVERPASS_URL, {
+    const response = await fetchImpl(OVERPASS_URL, {
       method: "POST",
       headers: { "Content-Type": "application/x-www-form-urlencoded", "User-Agent": USER_AGENT },
       body: new URLSearchParams({ data: query }).toString(),
       signal: AbortSignal.timeout(timeoutMs),
     });
+    if (response.status === 429 || response.status === 504) throw new OverpassBusyError(`status ${response.status}`);
+    if (!response.ok) throw new Error(`Overpass error: status ${response.status}`);
+    json = (await response.json()) as { remark?: string };
   } catch (e) {
     const name = (e as Error)?.name;
     if (name === "AbortError" || name === "TimeoutError") throw new OverpassBusyError("timeout");
     throw e;
   }
-  if (response.status === 429 || response.status === 504) throw new OverpassBusyError(`status ${response.status}`);
-  if (!response.ok) throw new Error(`Overpass error: status ${response.status}`);
-  const json = (await response.json()) as { remark?: string };
   if (json.remark && /timed out|runtime error|out of memory/i.test(json.remark)) {
     throw new OverpassBusyError(json.remark);
   }
@@ -144,8 +145,9 @@ export async function runOverpass(
 export async function fetchShops(
   normalized: string,
   fetchImpl: typeof fetch = fetch,
+  timeoutMs = 55_000,
 ): Promise<{ shops: OsmShop[]; truncated: boolean }> {
-  const shops = parseElements(await runOverpass(buildQuery(normalized), fetchImpl));
+  const shops = parseElements(await runOverpass(buildQuery(normalized), fetchImpl, timeoutMs));
   const truncated = shops.length > MAX_SHOPS;
   return { shops: truncated ? shops.slice(0, MAX_SHOPS) : shops, truncated };
 }

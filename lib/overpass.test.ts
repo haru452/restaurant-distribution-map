@@ -61,6 +61,26 @@ describe("fetchShops", () => {
     const body = { elements: [], remark: 'runtime error: Query timed out in "query" at line 4 after 51 seconds.' };
     await expect(fetchShops("スシロー", res(body))).rejects.toBeInstanceOf(OverpassBusyError);
   });
+  it("本文の読み込み中の時間切れも OverpassBusyError", async () => {
+    const slowBody = (async () => ({
+      ok: true,
+      status: 200,
+      json: async () => {
+        throw new DOMException("The operation timed out.", "TimeoutError");
+      },
+    })) as unknown as typeof fetch;
+    await expect(fetchShops("スシロー", slowBody)).rejects.toBeInstanceOf(OverpassBusyError);
+  });
+  it("渡した時間で打ち切る", async () => {
+    let signal: AbortSignal | undefined;
+    const capture = (async (_url: string, init: RequestInit) => {
+      signal = init.signal ?? undefined;
+      return new Response(JSON.stringify({ elements: [] }));
+    }) as unknown as typeof fetch;
+    await fetchShops("スシロー", capture, 1);
+    await new Promise((r) => setTimeout(r, 20));
+    expect(signal?.aborted).toBe(true);
+  });
   it("429 は OverpassBusyError", async () => {
     await expect(fetchShops("スシロー", res({}, 429))).rejects.toBeInstanceOf(OverpassBusyError);
   });

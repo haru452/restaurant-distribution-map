@@ -95,6 +95,34 @@ describe("handleSearch", () => {
     expect(await handleSearch("スシロー", deps)).toEqual({ status: 503, body: { error: "busy" }, cacheable: false });
   });
 
+  it("Overpass には残り時間（全体50秒から使った分を引いたもの）を渡す", async () => {
+    const { deps } = setup({ db: [] });
+    let t = 1_000_000;
+    let passed: number | undefined;
+    const r = await handleSearch("スシロー", {
+      ...deps,
+      now: () => t,
+      store: { ...deps.store!, search: async () => ((t += 5_000), []) },
+      fetchShops: (async (_q: string, _f: unknown, timeoutMs: number) => {
+        passed = timeoutMs;
+        return { shops: [], truncated: false };
+      }) as unknown as typeof deps.fetchShops,
+    });
+    expect(r.status).toBe(200);
+    expect(passed).toBe(45_000);
+  });
+
+  it("残り時間がほとんどなければ Overpass を呼ばずに 503", async () => {
+    const { deps } = setup({ db: [], live: new Error("呼ばれてはいけない") });
+    let t = 0;
+    const r = await handleSearch("スシロー", {
+      ...deps,
+      now: () => t,
+      store: { ...deps.store!, search: async () => ((t += 48_000), []) },
+    });
+    expect(r.status).toBe(503);
+  });
+
   it("その他の失敗は 500", async () => {
     const { deps } = setup({ db: [], live: new Error("boom") });
     expect(await handleSearch("スシロー", deps)).toEqual({ status: 500, body: { error: "internal" }, cacheable: false });

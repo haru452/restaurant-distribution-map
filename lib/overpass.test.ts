@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { normalizeQuery } from "./normalize";
-import { buildPattern, buildQuery, fetchShops, MAX_SHOPS, OverpassBusyError, parseElements } from "./overpass";
+import { buildPattern, buildQuery, fetchShops, MAX_SHOPS, OverpassBusyError, parseElements, toRawShop } from "./overpass";
 
 const re = (q: string) => new RegExp(buildPattern(normalizeQuery(q)), "i");
 const res = (body: object, status = 200) =>
@@ -41,9 +41,14 @@ describe("parseElements", () => {
         ],
       }),
     ).toEqual([
-      { name: "スシロー 渋谷店", lat: 35, lon: 139, address: "東京都渋谷区" },
-      { name: "スシロー", lat: 34, lon: 135 },
+      { osmId: "node/1", name: "スシロー 渋谷店", lat: 35, lon: 139, address: "東京都渋谷区", searchKey: "スシロ渋谷店" },
+      { osmId: "way/2", name: "スシロー", brand: "スシロー", lat: 34, lon: 135, searchKey: "スシロ" },
     ]);
+  });
+  it("search_key は looseKey を使う", () => {
+    const [shop] = parseElements({ elements: [{ type: "node", id: 9, lat: 1, lon: 2, tags: { name: "すき家 渋谷店", brand: "すき家" } }] });
+    expect(shop.searchKey).toBe("スキ家渋谷店|スキ家");
+    expect(toRawShop(shop)).toEqual({ name: "すき家 渋谷店", lat: 1, lon: 2 });
   });
   it("addr:full を優先する", () => {
     const [shop] = parseElements({ elements: [{ type: "node", id: 1, lat: 1, lon: 2, tags: { name: "A", "addr:full": "東京都千代田区1-1", "addr:city": "X" } }] });
@@ -72,6 +77,6 @@ describe("fetchShops", () => {
   });
   it("上限以下なら truncated: false", async () => {
     const out = await fetchShops("店", res({ elements: [{ type: "node", id: 1, lat: 35, lon: 139, tags: { name: "店" } }] }));
-    expect(out).toEqual({ shops: [{ name: "店", lat: 35, lon: 139 }], truncated: false });
+    expect(out).toEqual({ shops: [{ osmId: "node/1", name: "店", lat: 35, lon: 139, searchKey: "店" }], truncated: false });
   });
 });

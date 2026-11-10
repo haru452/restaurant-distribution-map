@@ -1,5 +1,6 @@
 // OpenStreetMap（Overpass API）への問い合わせ
-import type { RawShop } from "./types";
+import { looseKey } from "./normalize";
+import type { OsmShop, RawShop } from "./types";
 
 export const OVERPASS_URL = "https://overpass-api.de/api/interpreter";
 export const USER_AGENT = "restaurant-distribution-map/1.0";
@@ -64,6 +65,8 @@ export function buildQuery(normalized: string): string {
 }
 
 type Element = {
+  type?: string;
+  id?: number;
   lat?: number;
   lon?: number;
   center?: { lat: number; lon: number };
@@ -78,19 +81,36 @@ function buildAddress(tags: Record<string, string>): string | undefined {
   return joined || undefined;
 }
 
-export function parseElements(json: unknown): RawShop[] {
+const NAME_TAGS = ["name", "name:ja", "brand", "brand:ja"];
+
+/** 検索用のキー：名前タグの looseKey を重複なしで "|" でつなぐ */
+function buildSearchKey(tags: Record<string, string>): string {
+  const keys = NAME_TAGS.map((t) => tags[t]).filter(Boolean).map((v) => looseKey(v));
+  return [...new Set(keys)].join("|");
+}
+
+export function parseElements(json: unknown): OsmShop[] {
   const elements = (json as { elements?: Element[] })?.elements ?? [];
-  const shops: RawShop[] = [];
+  const shops: OsmShop[] = [];
   for (const el of elements) {
     const tags = el.tags ?? {};
     const name = tags.name ?? tags["name:ja"] ?? tags.brand;
     const lat = el.lat ?? el.center?.lat;
     const lon = el.lon ?? el.center?.lon;
     if (!name || lat === undefined || lon === undefined) continue;
+    const shop: OsmShop = { osmId: `${el.type}/${el.id}`, name, lat, lon, searchKey: buildSearchKey(tags) };
     const address = buildAddress(tags);
-    shops.push(address ? { name, lat, lon, address } : { name, lat, lon });
+    if (address) shop.address = address;
+    if (tags.brand) shop.brand = tags.brand;
+    shops.push(shop);
   }
   return shops;
+}
+
+/** 画面に返す前に保存用の項目を落とす */
+export function toRawShop(shop: OsmShop): RawShop {
+  const { name, lat, lon, address } = shop;
+  return address ? { name, lat, lon, address } : { name, lat, lon };
 }
 
 /** Overpass に問い合わせて文字列を返す（スクリプトからも使う） */
@@ -120,7 +140,7 @@ export async function runOverpass(query: string, fetchImpl: typeof fetch = fetch
 export async function fetchShops(
   normalized: string,
   fetchImpl: typeof fetch = fetch,
-): Promise<{ shops: RawShop[]; truncated: boolean }> {
+): Promise<{ shops: OsmShop[]; truncated: boolean }> {
   const shops = parseElements(await runOverpass(buildQuery(normalized), fetchImpl));
   const truncated = shops.length > MAX_SHOPS;
   return { shops: truncated ? shops.slice(0, MAX_SHOPS) : shops, truncated };

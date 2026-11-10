@@ -114,14 +114,18 @@ export function toRawShop(shop: OsmShop): RawShop {
 }
 
 /** Overpass に問い合わせて文字列を返す（スクリプトからも使う） */
-export async function runOverpass(query: string, fetchImpl: typeof fetch = fetch): Promise<unknown> {
+export async function runOverpass(
+  query: string,
+  fetchImpl: typeof fetch = fetch,
+  timeoutMs = 55_000,
+): Promise<unknown> {
   let response: Response;
   try {
     response = await fetchImpl(OVERPASS_URL, {
       method: "POST",
       headers: { "Content-Type": "application/x-www-form-urlencoded", "User-Agent": USER_AGENT },
       body: new URLSearchParams({ data: query }).toString(),
-      signal: AbortSignal.timeout(55_000),
+      signal: AbortSignal.timeout(timeoutMs),
     });
   } catch (e) {
     const name = (e as Error)?.name;

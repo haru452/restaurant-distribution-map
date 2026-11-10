@@ -27,6 +27,18 @@ describe("buildInsightPrompt", () => {
   });
 });
 
+describe("buildInsightPrompt（会社名のとき）", () => {
+  it("会社のチェーンをまとめた分布だと伝え、チェーンごとの店数を入れる", () => {
+    const prompt = buildInsightPrompt({
+      ...result,
+      query: "スカイラーク",
+      company: { name: "すかいらーくホールディングス", brands: [{ name: "ガスト", count: 80 }, { name: "バーミヤン", count: 40 }] },
+    });
+    expect(prompt).toContain("会社「すかいらーくホールディングス」");
+    expect(prompt).toContain("ガスト 80店、バーミヤン 40店");
+  });
+});
+
 describe("parseInsight", () => {
   it("```json で囲まれていても読む", () => {
     const text = '考察です\n```json\n{"summary":"大阪発","genre":"回転寿司","famousFor":["まぐろ","サイドメニュー"],"hqPrefecture":"大阪府","reasons":["a","b"]}\n```';

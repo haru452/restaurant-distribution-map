@@ -8,6 +8,9 @@ import { writeFileSync } from "node:fs";
 import path from "node:path";
 import prefectureData from "../data/prefectures.json";
 import { aggregateBrands } from "../lib/brandName";
+import { buildCompanies, voteBrandIds } from "../lib/companies";
+import type { Brand } from "../lib/types";
+import { fetchAncestors } from "../lib/wikidata";
 import { fetchNsiBrands, fetchPrefectureShops } from "../lib/importQuery";
 import { createShopStore, supabaseFromEnv } from "../lib/shopStore";
 
@@ -34,6 +37,17 @@ async function writeBrands(names: { name: string; brand?: string }[]) {
   const out = path.join(process.cwd(), "data", "brands.json");
   writeFileSync(out, JSON.stringify(brands));
   console.log(`brands.json: ${brands.length}件、上位: ${brands.slice(0, 20).map((b) => `${b.name}(${b.count})`).join("、")}`);
+  return brands;
+}
+
+/** 店に付いているブランドIDから親会社をたどり、data/companies.json を作る */
+async function writeCompanies(names: { name: string; brand?: string; wikidata?: string }[], brands: Brand[]) {
+  const ids = voteBrandIds(names, brands);
+  console.log(`ブランドIDが分かったチェーン: ${ids.size}件。Wikidata で親会社を調べます`);
+  const ancestors = await fetchAncestors([...ids.values()]);
+  const companies = buildCompanies(ids, ancestors, brands);
+  writeFileSync(path.join(process.cwd(), "data", "companies.json"), JSON.stringify(companies));
+  console.log(`companies.json: ${companies.length}件、上位: ${companies.slice(0, 10).map((c) => `${c.name}(${c.brands.slice(0, 4).join("/")})`).join("、")}`);
 }
 
 async function main() {
@@ -88,7 +102,8 @@ async function main() {
   const removed = await store.deleteOlderThan(runStart);
   console.log(`古い行を削除: ${removed}件`);
 
-  await writeBrands(names);
+  const brands = await writeBrands(names);
+  await writeCompanies(names, brands);
 }
 
 main()

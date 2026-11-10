@@ -54,7 +54,12 @@ export function buildInsightPrompt(result: SearchResult): string {
 
   return [
     "あなたは日本の外食チェーンに詳しいアナリストです。",
-    `「${result.query}」という店名で OpenStreetMap を検索した、日本国内の店舗の分布データがあります。`,
+    result.company
+      ? `「${result.query}」で検索した、会社「${result.company.name}」が運営するチェーン（${result.company.brands
+          .slice(0, 10)
+          .map((b) => `${b.name} ${b.count}店`)
+          .join("、")}）をまとめた、日本国内の店舗の分布データがあります（OpenStreetMap）。会社として、各チェーンの違いにも触れてください。`
+      : `「${result.query}」という店名で OpenStreetMap を検索した、日本国内の店舗の分布データがあります。`,
     "本社・創業地・沿革・出店戦略など、あなたの知っていること（検索が使える場合は検索で確かめたこと）をもとに、なぜこのような分布になっているのかを考察してください。",
     "",
     `全国 ${result.total}店${result.truncated ? "（多すぎるため一部のみ）" : ""}`,

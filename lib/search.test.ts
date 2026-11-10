@@ -123,6 +123,46 @@ describe("handleSearch", () => {
     expect(r.status).toBe(503);
   });
 
+  it("会社名なら、その会社のチェーンをまとめて探し、チェーンごとの内訳を付ける", async () => {
+    const shop = (name: string, lat: number): Shop => ({ name, lat, lon: 139, prefecture: "東京都" });
+    const gusto = shop("ガスト 渋谷店", 35.1);
+    const steak = shop("ステーキガスト 府中店", 35.2);
+    const bamiyan = shop("バーミヤン 新宿店", 35.3);
+    const byKey: Record<string, Shop[]> = { ガスト: [gusto, steak], ステキガスト: [steak], バミヤン: [bamiyan] };
+    const { deps } = setup({});
+    deps.store!.search = async (key) => byKey[key] ?? [];
+    const r = await handleSearch("すかいらーく", {
+      ...deps,
+      findCompany: (q) =>
+        q === "スカイラーク"
+          ? { name: "すかいらーくホールディングス", aliases: ["すかいらーく"], brands: ["ガスト", "バーミヤン", "ステーキガスト"], count: 0 }
+          : null,
+    });
+    const body = r.body as SearchResult;
+    expect(body.total).toBe(3);
+    expect(body.source).toBe("db");
+    expect(body.company).toEqual({
+      name: "すかいらーくホールディングス",
+      brands: [
+        { name: "ガスト", count: 1 },
+        { name: "ステーキガスト", count: 1 },
+        { name: "バーミヤン", count: 1 },
+      ],
+    });
+  });
+
+  it("会社名でも店が1件もなければ、ふつうの検索に戻る", async () => {
+    const { deps } = setup({ db: [dbShop] });
+    const searched: string[] = [];
+    deps.store!.search = async (key) => (searched.push(key), key === "スカイラク" ? [dbShop] : []);
+    const r = await handleSearch("すかいらーく", {
+      ...deps,
+      findCompany: () => ({ name: "X", aliases: [], brands: ["ガスト"], count: 0 }),
+    });
+    expect((r.body as SearchResult).company).toBeUndefined();
+    expect(searched).toEqual(["ガスト", "スカイラク"]);
+  });
+
   it("その他の失敗は 500", async () => {
     const { deps } = setup({ db: [], live: new Error("boom") });
     expect(await handleSearch("スシロー", deps)).toEqual({ status: 500, body: { error: "internal" }, cacheable: false });

@@ -112,7 +112,10 @@ export function SearchBar({ onSearch, disabled }: Props) {
               onMouseDown={(e) => e.preventDefault()}
               onClick={() => submit(b.name)}
             >
-              <span>{b.name}</span>
+              <span className="min-w-0">
+                {b.name}
+                {b.note && <span className="ml-2 text-xs text-muted">（{b.note}）</span>}
+              </span>
               {b.count > 0 && <span className="text-sm text-muted">{b.count.toLocaleString()}店</span>}
             </li>
           ))}

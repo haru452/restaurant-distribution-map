@@ -44,6 +44,23 @@ export function RankingPanel({ result, onSearch, onHqChange }: Props) {
         <span className="ml-1">店</span>
       </p>
       {result.truncated && <p className="text-sm text-danger">件数が多いため一部のみ表示しています</p>}
+      {result.company && (
+        <div className="space-y-1.5">
+          <p className="text-sm text-muted">{result.company.name} のチェーン（押すとそのチェーンだけ表示）</p>
+          <div className="flex flex-wrap gap-1.5">
+            {result.company.brands.map((b) => (
+              <button
+                key={b.name}
+                type="button"
+                onClick={() => onSearch(b.name)}
+                className="rounded-full border border-line px-2.5 py-1 text-xs text-ink hover:border-accent hover:text-accent"
+              >
+                {b.name} <span className="tabular-nums text-muted">{b.count.toLocaleString()}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
       <InsightPanel key={result.query} query={result.query} onHqChange={onHqChange} />
       <ol className="space-y-1.5">
         {result.byPrefecture.map((p, i) => (
